@@ -12,6 +12,7 @@ import com.asofterspace.toolbox.Utils;
 import com.asofterspace.toolbox.web.WebAccessor;
 import com.asofterspace.toolbox.web.WebExtractor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -31,6 +32,7 @@ public class AnkiCardGenerator {
 	public final static String SET = "set";
 	public final static String TAGS = "tags";
 	public final static String TYPE = "type";
+	public final static String STATS = "stats";
 
 
 	public static void main(String[] args) {
@@ -67,8 +69,10 @@ public class AnkiCardGenerator {
 		List<Record> ankiCards = root.getArray(CARDS);
 
 
-		System.out.println("Loading new data from the web...");
 		String set = "iko";
+
+		System.out.println("Loading new data from the web for set " + set + "...");
+
 		String html = WebAccessor.get("https://scryfall.com/sets/" + set + "?as=grid&order=set");
 		String cardStart = "<a class=\"card-grid-item-card\" href=\"";
 
@@ -94,14 +98,35 @@ public class AnkiCardGenerator {
 			artistStr = artistStr.trim();
 			card.set(ARTIST, artistStr);
 
-			/*
-			card.set(IMAGE, TODO);
-			card.set(SMALL_IMAGE, TODO);
-			card.set(ORACLE_TEXT, TODO);
-			card.set(SET, TODO);
-			card.set(TAGS, TODO);
-			card.set(TYPE, TODO);
-			*/
+			card.set(TYPE, WebExtractor.extract(linkHtml, "<p class=\"card-text-type-line\" lang=\"en\">", "<").trim());
+
+			String oracleStr = WebExtractor.extract(linkHtml, "<div class=\"card-text-oracle\">", "</div>");
+			if (oracleStr == null) {
+				card.set(ORACLE_TEXT, "");
+			} else {
+				oracleStr = oracleStr.replaceAll("<p>", "");
+				oracleStr = oracleStr.replaceAll("</p>", "");
+				oracleStr = oracleStr.trim();
+				card.set(ORACLE_TEXT, oracleStr);
+			}
+
+			String statsStr = WebExtractor.extract(linkHtml, "<div class=\"card-text-stats\">", "</div>");
+			if (statsStr == null) {
+				card.set(STATS, "");
+			} else {
+				card.set(STATS, statsStr.trim());
+			}
+
+			List<String> tags = new ArrayList<>();
+			card.set(TAGS, tags);
+
+			card.set(SET, WebExtractor.extract(linkHtml, "<span class=\"prints-current-set-name\">", "<").trim());
+
+			card.set(IMAGE, "https://img.scryfall.com/cards/normal/front/" +
+				WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/normal/front/", "\"").trim());
+
+			card.set(SMALL_IMAGE, "https://img.scryfall.com/cards/art_crop/front/" +
+				WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/art_crop/front/", "\"").trim());
 
 			ankiCards.add(card);
 
