@@ -34,7 +34,5 @@ src/com/asofterspace/toolbox
 config
 
 # input / output files
-*.pdf
-*.ppm
-*.png
+anki_cards.txt
 *.json

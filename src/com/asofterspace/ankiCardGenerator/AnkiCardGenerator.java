@@ -7,13 +7,16 @@ package com.asofterspace.ankiCardGenerator;
 import com.asofterspace.toolbox.io.JSON;
 import com.asofterspace.toolbox.io.JsonFile;
 import com.asofterspace.toolbox.io.JsonParseException;
+import com.asofterspace.toolbox.io.SimpleFile;
 import com.asofterspace.toolbox.utils.Record;
 import com.asofterspace.toolbox.Utils;
 import com.asofterspace.toolbox.web.WebAccessor;
 import com.asofterspace.toolbox.web.WebExtractor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class AnkiCardGenerator {
@@ -33,6 +36,8 @@ public class AnkiCardGenerator {
 	public final static String TAGS = "tags";
 	public final static String TYPE = "type";
 	public final static String STATS = "stats";
+
+	private final static Map<String, String> setToFullSet = new HashMap<>();
 
 
 	public static void main(String[] args) {
@@ -69,80 +74,132 @@ public class AnkiCardGenerator {
 		List<Record> ankiCards = root.getArray(CARDS);
 
 
-		String set = "iko";
+		List<String> sets = new ArrayList<>();
+		sets.add("iko");
+		setToFullSet.put("iko", "Ikoria: Lair of Behemoths (IKO)");
 
-		System.out.println("Loading new data from the web for set " + set + "...");
+		for (String set : sets) {
 
-		String html = WebAccessor.get("https://scryfall.com/sets/" + set + "?as=grid&order=set");
-		String cardStart = "<a class=\"card-grid-item-card\" href=\"";
-
-		while (html.contains(cardStart)) {
-			html = html.substring(html.indexOf(cardStart) + cardStart.length());
-			String link = html.substring(0, html.indexOf("\""));
-
-			Utils.sleep(1000);
-
-			String linkHtml = WebAccessor.get(link);
-
-			Record card = Record.emptyObject();
-
-			card.set(NAME, WebExtractor.extract(linkHtml, "<h1 class=\"card-text-title\" lang=\"en\">", "<").trim());
-
-			String manaStr = WebExtractor.extract(linkHtml, "<abbr", "<");
-			manaStr = manaStr.substring(manaStr.indexOf(">") + 1);
-			manaStr = manaStr.trim();
-			card.set(MANA, manaStr);
-
-			String artistStr = WebExtractor.extract(linkHtml, "<p class=\"card-text-artist\">", "</a>");
-			artistStr = artistStr.substring(artistStr.indexOf(">") + 1);
-			artistStr = artistStr.trim();
-			card.set(ARTIST, artistStr);
-
-			card.set(TYPE, WebExtractor.extract(linkHtml, "<p class=\"card-text-type-line\" lang=\"en\">", "<").trim());
-
-			String oracleStr = WebExtractor.extract(linkHtml, "<div class=\"card-text-oracle\">", "</div>");
-			if (oracleStr == null) {
-				card.set(ORACLE_TEXT, "");
-			} else {
-				oracleStr = oracleStr.replaceAll("<p>", "");
-				oracleStr = oracleStr.replaceAll("</p>", "");
-				oracleStr = oracleStr.trim();
-				card.set(ORACLE_TEXT, oracleStr);
+			String fullSet = setToFullSet.get(set);
+			if (fullSet == null) {
+				System.err.println("The set " + set + " is unknown to me! Aborting...");
+				System.exit(2);
 			}
 
-			String statsStr = WebExtractor.extract(linkHtml, "<div class=\"card-text-stats\">", "</div>");
-			if (statsStr == null) {
-				card.set(STATS, "");
-			} else {
-				card.set(STATS, statsStr.trim());
+			boolean alreadyLoaded = false;
+
+			for (Record card : ankiCards) {
+				if (fullSet.equals(card.getString(SET))) {
+					System.out.println("Cards of the set " + fullSet +
+						" have already been loaded. It will not be crawled again.");
+					alreadyLoaded = true;
+					break;
+				}
 			}
 
-			List<String> tags = new ArrayList<>();
-			card.set(TAGS, tags);
+			if (alreadyLoaded) {
+				continue;
+			}
 
-			card.set(SET, WebExtractor.extract(linkHtml, "<span class=\"prints-current-set-name\">", "<").trim());
+			System.out.println("Loading new data from the web for set " + fullSet + "...");
 
-			card.set(IMAGE, "https://img.scryfall.com/cards/normal/front/" +
-				WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/normal/front/", "\"").trim());
+			String html = WebAccessor.get("https://scryfall.com/sets/" + set + "?as=grid&order=set");
+			String cardStart = "<a class=\"card-grid-item-card\" href=\"";
 
-			card.set(SMALL_IMAGE, "https://img.scryfall.com/cards/art_crop/front/" +
-				WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/art_crop/front/", "\"").trim());
+			while (html.contains(cardStart)) {
+				html = html.substring(html.indexOf(cardStart) + cardStart.length());
+				String link = html.substring(0, html.indexOf("\""));
 
-			ankiCards.add(card);
+				Utils.sleep(1000);
 
-			// save the database
-			root.set(CARDS, ankiCards);
-			mainConf.setAllContents(root);
-			mainConf.save();
+				String linkHtml = WebAccessor.get(link);
+
+				Record card = Record.emptyObject();
+
+				card.set(NAME, WebExtractor.extract(linkHtml, "<h1 class=\"card-text-title\" lang=\"en\">", "<").trim());
+
+				String manaStr = WebExtractor.extract(linkHtml, "<abbr", "<");
+				manaStr = manaStr.substring(manaStr.indexOf(">") + 1);
+				manaStr = manaStr.trim();
+				card.set(MANA, manaStr);
+
+				String artistStr = WebExtractor.extract(linkHtml, "<p class=\"card-text-artist\">", "</a>");
+				artistStr = artistStr.substring(artistStr.indexOf(">") + 1);
+				artistStr = artistStr.trim();
+				card.set(ARTIST, artistStr);
+
+				card.set(TYPE, WebExtractor.extract(linkHtml, "<p class=\"card-text-type-line\" lang=\"en\">", "<").trim());
+
+				String oracleStr = WebExtractor.extract(linkHtml, "<div class=\"card-text-oracle\">", "</div>");
+				if (oracleStr == null) {
+					card.set(ORACLE_TEXT, "");
+				} else {
+					oracleStr = oracleStr.replaceAll("<p>", "");
+					oracleStr = oracleStr.replaceAll("</p>", "");
+					oracleStr = oracleStr.trim();
+					card.set(ORACLE_TEXT, oracleStr);
+				}
+
+				String statsStr = WebExtractor.extract(linkHtml, "<div class=\"card-text-stats\">", "</div>");
+				if (statsStr == null) {
+					card.set(STATS, "");
+				} else {
+					card.set(STATS, statsStr.trim());
+				}
+
+				List<String> tags = new ArrayList<>();
+				card.set(TAGS, tags);
+
+				card.set(SET, WebExtractor.extract(linkHtml, "<span class=\"prints-current-set-name\">", "<").trim());
+
+				card.set(IMAGE, "https://img.scryfall.com/cards/normal/front/" +
+					WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/normal/front/", "\"").trim());
+
+				card.set(SMALL_IMAGE, "https://img.scryfall.com/cards/art_crop/front/" +
+					WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/art_crop/front/", "\"").trim());
+
+				ankiCards.add(card);
+
+				// save the database
+				root.set(CARDS, ankiCards);
+				mainConf.setAllContents(root);
+				mainConf.save();
+			}
 		}
 
 
 		System.out.println("Saving new Anki cards...");
 
-		// TODO
+		SimpleFile ankiFile = new SimpleFile("anki_cards.txt");
+		List<String> contents = new ArrayList<>();
+		contents.add("name;mana;type;oracle text;image;artist;set;small image;stats;Tags");
+		for (Record card : ankiCards) {
+			String line = "";
+			line += sanitizeOut(card.getString(NAME)) + ";";
+			line += sanitizeOut(card.getString(MANA)) + ";";
+			line += sanitizeOut(card.getString(TYPE)) + ";";
+			line += sanitizeOut(card.getString(ORACLE_TEXT)) + ";";
+			line += sanitizeOut(card.getString(IMAGE)) + ";";
+			line += sanitizeOut(card.getString(ARTIST)) + ";";
+			line += sanitizeOut(card.getString(SET)) + ";";
+			line += sanitizeOut(card.getString(SMALL_IMAGE)) + ";";
+			line += sanitizeOut(card.getString(STATS)) + ";";
+			// TODO: if we want to use tags, figure out how anki wants them to be passed in
+			line += sanitizeOut("");
+			contents.add(line);
+		}
+		ankiFile.saveContents(contents);
 
 
 		System.out.println("Done! Have a nice day! :)");
+	}
+
+	private static String sanitizeOut(String str) {
+		str = str.replace(";", ",");
+		if (str.contains("\n")) {
+			str = "\"" + str + "\"";
+		}
+		return str;
 	}
 
 }
