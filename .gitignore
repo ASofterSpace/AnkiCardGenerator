@@ -34,5 +34,5 @@ src/com/asofterspace/toolbox
 config
 
 # input / output files
-anki_cards.txt
+*.txt
 *.json

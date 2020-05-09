@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 public class AnkiCardGenerator {
@@ -74,9 +75,11 @@ public class AnkiCardGenerator {
 		List<Record> ankiCards = root.getArray(CARDS);
 
 
-		List<String> sets = new ArrayList<>();
-		sets.add("iko");
 		setToFullSet.put("iko", "Ikoria: Lair of Behemoths (IKO)");
+		setToFullSet.put("thb", "Theros Beyond Death (THB)");
+
+
+		Set<String> sets = setToFullSet.keySet();
 
 		for (String set : sets) {
 
@@ -118,8 +121,7 @@ public class AnkiCardGenerator {
 
 				card.set(NAME, WebExtractor.extract(linkHtml, "<h1 class=\"card-text-title\" lang=\"en\">", "<").trim());
 
-				String manaStr = WebExtractor.extract(linkHtml, "<abbr", "<");
-				manaStr = manaStr.substring(manaStr.indexOf(">") + 1);
+				String manaStr = WebExtractor.extract(linkHtml, "<meta name=\"description\" content=\"", " •");
 				manaStr = manaStr.trim();
 				card.set(MANA, manaStr);
 
@@ -159,36 +161,52 @@ public class AnkiCardGenerator {
 					WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/art_crop/front/", "\"").trim());
 
 				ankiCards.add(card);
-
-				// save the database
-				root.set(CARDS, ankiCards);
-				mainConf.setAllContents(root);
-				mainConf.save();
 			}
+
+			// save the database
+			// (we cannot save on every card, because when we start up, we only check if one card per set is
+			// present and if so skip crawling the set... sooo... if there is a problem and we only got
+			// half the set, we would never get the rest! xD)
+			root.set(CARDS, ankiCards);
+			mainConf.setAllContents(root);
+			mainConf.save();
 		}
 
 
 		System.out.println("Saving new Anki cards...");
 
-		SimpleFile ankiFile = new SimpleFile("anki_cards.txt");
-		List<String> contents = new ArrayList<>();
-		contents.add("name;mana;type;oracle text;image;artist;set;small image;stats;Tags");
-		for (Record card : ankiCards) {
-			String line = "";
-			line += sanitizeOut(card.getString(NAME)) + ";";
-			line += sanitizeOut(card.getString(MANA)) + ";";
-			line += sanitizeOut(card.getString(TYPE)) + ";";
-			line += sanitizeOut(card.getString(ORACLE_TEXT)) + ";";
-			line += sanitizeOut(card.getString(IMAGE)) + ";";
-			line += sanitizeOut(card.getString(ARTIST)) + ";";
-			line += sanitizeOut(card.getString(SET)) + ";";
-			line += sanitizeOut(card.getString(SMALL_IMAGE)) + ";";
-			line += sanitizeOut(card.getString(STATS)) + ";";
-			// TODO: if we want to use tags, figure out how anki wants them to be passed in
-			line += sanitizeOut("");
-			contents.add(line);
+		for (String set : sets) {
+
+			String fullSet = setToFullSet.get(set);
+
+			SimpleFile ankiFile = new SimpleFile("anki_cards_" + set + ".txt");
+			List<String> contents = new ArrayList<>();
+			// actually, for MTG set leave out the first line:
+			// contents.add("name;mana;type;oracle text;image;artist;set;small image;Tags");
+
+			for (Record card : ankiCards) {
+				if (fullSet.equals(card.getString(SET))) {
+					String line = "";
+					line += sanitizeOut(card.getString(NAME)) + ";";
+					line += sanitizeOut(card.getString(MANA)) + ";";
+					line += sanitizeOut(card.getString(TYPE)) + ";";
+					String oracleAndStats = card.getString(ORACLE_TEXT);
+					if ((card.getString(STATS) != null) && !"".equals(card.getString(STATS))) {
+						oracleAndStats += "\n\n" + card.getString(STATS);
+					}
+					line += sanitizeOut(oracleAndStats) + ";";
+					line += sanitizeOut(card.getString(IMAGE)) + ";";
+					line += sanitizeOut(card.getString(ARTIST)) + ";";
+					line += sanitizeOut(card.getString(SET)) + ";";
+					line += sanitizeOut(card.getString(SMALL_IMAGE)) + ";";
+					// TODO: if we want to use tags, figure out how anki wants them to be passed in
+					line += sanitizeOut("");
+					contents.add(line);
+				}
+			}
+
+			ankiFile.saveContents(contents);
 		}
-		ankiFile.saveContents(contents);
 
 
 		System.out.println("Done! Have a nice day! :)");
@@ -196,6 +214,11 @@ public class AnkiCardGenerator {
 
 	private static String sanitizeOut(String str) {
 		str = str.replace(";", ",");
+		str = str.replace("\"", "'");
+		while (str.contains("<")) {
+			str = str.substring(0, str.indexOf("<")) + str.substring(str.indexOf(">") + 1);
+		}
+		str = str.replaceAll("\n", "<br>\n");
 		if (str.contains("\n")) {
 			str = "\"" + str + "\"";
 		}
