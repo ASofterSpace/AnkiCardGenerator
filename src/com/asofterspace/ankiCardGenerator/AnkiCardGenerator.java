@@ -70,6 +70,7 @@ public class AnkiCardGenerator {
 		System.out.println("Loading previous files...");
 
 		JsonFile mainConf = new JsonFile("config/database.json");
+		mainConf.createParentDirectory();
 		JSON root = null;
 		try {
 			root = mainConf.getAllContents();
