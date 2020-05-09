@@ -20,11 +20,18 @@ import java.util.Map;
 import java.util.Set;
 
 
+/**
+ * Generates Anki cards for Magic compatible with:
+ * https://ankiweb.net/shared/info/423106564
+ *
+ * For more generic info about importing cards into Anki, see:
+ * https://docs.ankiweb.net/#/importing
+ */
 public class AnkiCardGenerator {
 
 	public final static String PROGRAM_TITLE = "AnkiCardGenerator";
-	public final static String VERSION_NUMBER = "0.0.0.1(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "7. May 2020 - 7. May 2020";
+	public final static String VERSION_NUMBER = "0.0.0.2(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "7. May 2020 - 9. May 2020";
 
 	public final static String CARDS = "cards";
 	public final static String NAME = "name";
