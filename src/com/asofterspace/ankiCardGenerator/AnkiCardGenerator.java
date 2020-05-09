@@ -222,9 +222,7 @@ public class AnkiCardGenerator {
 	private static String sanitizeOut(String str) {
 		str = str.replace(";", ",");
 		str = str.replace("\"", "'");
-		while (str.contains("<")) {
-			str = str.substring(0, str.indexOf("<")) + str.substring(str.indexOf(">") + 1);
-		}
+		str = WebExtractor.removeHtmlTagsFromText(str);
 		str = str.replaceAll("\n", "<br>\n");
 		if (str.contains("\n")) {
 			str = "\"" + str + "\"";
