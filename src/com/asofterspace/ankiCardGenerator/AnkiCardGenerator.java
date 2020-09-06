@@ -30,8 +30,8 @@ import java.util.Set;
 public class AnkiCardGenerator {
 
 	public final static String PROGRAM_TITLE = "AnkiCardGenerator";
-	public final static String VERSION_NUMBER = "0.0.0.2(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
-	public final static String VERSION_DATE = "7. May 2020 - 9. May 2020";
+	public final static String VERSION_NUMBER = "0.0.0.3(" + Utils.TOOLBOX_VERSION_NUMBER + ")";
+	public final static String VERSION_DATE = "7. May 2020 - 6. June 2020";
 
 	public final static String CARDS = "cards";
 	public final static String NAME = "name";
@@ -66,6 +66,32 @@ public class AnkiCardGenerator {
 				return;
 			}
 		}
+
+
+
+		System.out.println("Loading human cards...");
+
+		List<HumanCard> humanCards = new ArrayList<>();
+
+		SimpleFile humanInput = new SimpleFile("humanisten.txt");
+
+		List<String> humanLines = humanInput.getContents();
+
+		HumanCard curCard = null;
+
+		for (String line : humanLines) {
+			if (line.trim().equals("")) {
+				continue;
+			}
+			if (line.startsWith("-")) {
+				HumanCardEntry entry = new HumanCardEntry(curCard, line);
+			} else {
+				curCard = new HumanCard(line);
+				humanCards.add(curCard);
+			}
+		}
+
+
 
 		System.out.println("Loading previous files...");
 
@@ -215,6 +241,18 @@ public class AnkiCardGenerator {
 
 			ankiFile.saveContents(contents);
 		}
+
+		SimpleFile humanFile = new SimpleFile("anki_card_humanisten.csv");
+		List<String> contents = new ArrayList<>();
+		for (HumanCard card : humanCards) {
+			for (HumanCardEntry entry : card.getEntries()) {
+				String line = "";
+				line += sanitizeOut(entry.getQuestion()) + ";";
+				line += sanitizeOut(entry.getAnswer());
+				contents.add(line);
+			}
+		}
+		humanFile.saveContents(contents);
 
 
 		System.out.println("Done! Have a nice day! :)");
