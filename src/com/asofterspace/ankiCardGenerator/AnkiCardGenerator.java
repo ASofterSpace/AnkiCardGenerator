@@ -109,8 +109,10 @@ public class AnkiCardGenerator {
 		List<Record> ankiCards = root.getArray(CARDS);
 
 
+		// just add a new set here to get it :)
 		setToFullSet.put("iko", "Ikoria: Lair of Behemoths (IKO)");
 		setToFullSet.put("thb", "Theros Beyond Death (THB)");
+		setToFullSet.put("stx", "Strixhaven: School of Mages (STX)");
 
 
 		Set<String> sets = setToFullSet.keySet();
@@ -146,6 +148,7 @@ public class AnkiCardGenerator {
 			while (html.contains(cardStart)) {
 				html = html.substring(html.indexOf(cardStart) + cardStart.length());
 				String link = html.substring(0, html.indexOf("\""));
+				System.out.println("Getting " + link + "...");
 
 				Utils.sleep(1000);
 
@@ -188,11 +191,11 @@ public class AnkiCardGenerator {
 
 				card.set(SET, WebExtractor.extract(linkHtml, "<span class=\"prints-current-set-name\">", "<").trim());
 
-				card.set(IMAGE, "https://img.scryfall.com/cards/normal/front/" +
-					WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/normal/front/", "\"").trim());
+				card.set(IMAGE, "https://c1.scryfall.com/file/scryfall-cards/normal/front/" +
+					WebExtractor.extract(linkHtml, "https://c1.scryfall.com/file/scryfall-cards/normal/front/", "\"").trim());
 
-				card.set(SMALL_IMAGE, "https://img.scryfall.com/cards/art_crop/front/" +
-					WebExtractor.extract(linkHtml, "https://img.scryfall.com/cards/art_crop/front/", "\"").trim());
+				card.set(SMALL_IMAGE, "https://c1.scryfall.com/file/scryfall-cards/art_crop/front/" +
+					WebExtractor.extract(linkHtml, "https://c1.scryfall.com/file/scryfall-cards/art_crop/front/", "\"").trim());
 
 				ankiCards.add(card);
 			}

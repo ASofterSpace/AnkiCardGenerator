@@ -12,7 +12,9 @@ Generates Anki cards based on information found on the world wide web
 
 Download our Toolbox-Java (which is a separate project here on github) into an adjacent directory on your hard drive.
 
-Start the build by calling under Windows:
+If you want to add another card set before building and running, just add it to the `setToFullSet` map in the `AnkiCardGenerator` main class.
+
+Then start the build by calling under Windows:
 
 ```
 build.bat
